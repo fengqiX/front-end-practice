@@ -1,137 +1,91 @@
-const cardsContainer=document.getElementById('cards-container');
-const prevBtn =document.getElementById('prev');
-const nextBtn =document.getElementById('next');
-const currentEl =document.getElementById('current');
-const showBtn = document.getElementById('show');
-const hideBtn= document.getElementById('hide');
-const questionEl = document.getElementById('question');
-const answerEl = document.getElementById('answer');
-const addCardBtn=document.getElementById('add-card');
-const clearBtn = document.getElementById('clear');
-const addContainer =document.getElementById('add-container');
+const form = document.getElementById('form');
+const search=document.getElementById('search');
+const result = document.getElementById('result');
+const more = document.getElementById('more');
 
-//keep track of current card
-let currentActiveCard =0;
+const apiURL = 'https://api.lyrics.ovh';
 
-
-//store DOM cards
-const cardsEl=[];
-
-//store card data
-const cardsData=getCardsData();
-
-// const cardsData = [
-//   {
-//     question: 'What must a variable begin with?',
-//     answer: 'A letter, $ or _'
-//   },
-//  ]
-
-//create all cards
-function createCards(){
-    cardsData.forEach((data,index)=>createCard(data,index));
-}
-//create a single card in DOM
-function createCard(data,index){
-    const card = document.createElement('div');
-    card.classList.add('card');
+async function searchSongs(term){
     
-    if (index===0){
-        card.classList.add('active');
+    const res = await fetch(`${apiURL}/suggest/${term}`);
+    const data = await res.json();
+    
+    showData(data);
+}
+
+function showData(data){
+    result.innerHTML=`
+    <ul class="song">
+        ${data.data.map(song=>`
+<li><span>
+<strong>${song.artist.name}</strong> - ${song.title}
+</span>
+<button class="btn" data-artist="${song.artist.name}" data-songtitle="${song.title}">Get Lyrics</button>
+</li>
+
+`).join('')}
+</ul>
+`;
+    
+    if(data.prev || data.next){
+        more.innerHTML=`
+    ${data.prev?`<button class="btn" onclick="getMoreSongs('${data.prev}')">Prev</button>`: ''}
+    ${data.next?`<button class="btn" onclick="getMoreSongs('${data.next}')">Next</button>`:''}
+`
+    }else{
+        more.innerHTML=""
     }
-    
-    card.innerHTML=`
-  <div class="inner-card">
-  <div class="inner-card-front">
-    <p>
-      ${data.question}
-    </p>
-  </div>
-  <div class="inner-card-back">
-    <p>
-      ${data.answer}
-    </p>
-  </div>
-</div>
-  `;
-    card.addEventListener('click',()=>card.classList.toggle('show-answer'));
-    cardsEl.push(card);
-    cardsContainer.appendChild(card);
-    
-    updateCurrentText();
 }
 
-//show number of cards
-function updateCurrentText(){
-    currentEl.innerHTML=`${currentActiveCard+1}/${cardsEl.length}`;
-}
+async function getMoreSongs(url){
+      const res = await fetch(`https://cors-anywhere.herokuapp.com/${url}`);
+  const data = await res.json();
 
-//get cards from local storage
-function getCardsData(){
-    const cards = JSON.parse(localStorage.getItem('cards'));
-    return cards===null?[]:cards;
-}
+  showData(data);
+} 
+// Get lyrics for song
+async function getLyrics(artist, songTitle) {
+  const res = await fetch(`${apiURL}/v1/${artist}/${songTitle}`);
+  const data = await res.json();
 
-//add card to local storage
-function setCardsData(cards){
-    localStorage.setItem('cards',JSON.stringify(cards));
-    window.location.reload();
-}
+   if (data.error) {
+        result.innerHTML = data.error;
+   } else {
+        const lyrics = data.lyrics.replace(/(\r\n|\r|\n)/g, '<br>');
 
-createCards();
-
-//Listeners
-
-nextBtn.addEventListener('click',()=>{
-    cardsEl[currentActiveCard].className='card left';
-    
-    currentActiveCard = currentActiveCard+1;
-    if(currentActiveCard>cardsEl.length-1) {
-        currentActiveCard=cardsEl.length-1
-    }
-    cardsEl[currentActiveCard].className='card active';
-    updateCurrentText();
-
-});
-
-prevBtn.addEventListener('click',()=>{
-      cardsEl[currentActiveCard].className = 'card right';
-
-  currentActiveCard = currentActiveCard - 1;
-
-  if (currentActiveCard < 0) {
-    currentActiveCard = 0;
+        result.innerHTML = `
+            <h2><strong>${artist}</strong> - ${songTitle}</h2>
+            <span>${lyrics}</span>
+        `;
   }
 
-  cardsEl[currentActiveCard].className = 'card active';
+  more.innerHTML = '';
+}
 
-  updateCurrentText();
-});
-
-showBtn.addEventListener('click',()=>addContainer.classList.add('show'));
-hideBtn.addEventListener('click',()=>addContainer.classList.remove('show'));
-
-addCardBtn.addEventListener('click',()=>{
-    const question = questionEl.value;
-    const answer =answerEl.value;
+form.addEventListener('submit',e=>{
+    e.preventDefault();
+    const searchTerm=search.value.trim();
     
-    if(question.trim() && answer.trim()){
-        const newCard= {question,answer};
-        createCard(newCard);
-        questionEl.value="";
-        answerEl.value="";
-        
-        addContainer.classList.remove('show');
-        cardsData.push(newCard);
-        setCardsData(cardsData);
+    if(!searchTerm){
+        alert('Please type in a search term!')
+    }else{
+        searchSongs(searchTerm);
     }
 });
 
-clearBtn.addEventListener('click',()=>{
-    localStorage.clear();
-    cardsContainer.innerHTML='';
-    window.location.reload();
+result.addEventListener('click',e=>{
+    const clickEL = e.target;
+    if(clickEL.tagName==="BUTTON"){
+        const artist = clickEL.getAttribute('data-artist');
+        const songTitle = clickEL.getAttribute('data-songtitle');
+        getLyrics(artist,songTitle);
+    }
 })
+
+
+
+
+
 
 
 

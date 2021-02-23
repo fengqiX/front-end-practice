@@ -1,0 +1,27 @@
+abbr[title]{border-bottom: 1px dotted #999;}
+abbr[title]:hover{cursor: help;}
+
+form input {
+    width:15em;
+    background-color: black;
+}
+/*
+
+body{
+    background-image: url(img/backgroundimage.jpg);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: 0,0;
+
+}
+*/
+
+div{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+img{
+    width: 75%;
+}
